@@ -13,7 +13,14 @@ const fraunces = Fraunces({
 	weight: ["600", "700"],
 });
 
-export default function LoginPage() {
+export default function LoginPage({
+	searchParams,
+}: {
+	searchParams?: { error?: string };
+}) {
+	const errorMessage = searchParams?.error
+		? decodeURIComponent(searchParams.error)
+		: "";
 	return (
 		<div
 			className={`${spaceGrotesk.className} min-h-screen bg-gradient-to-br from-[#0f1c1a] via-[#102a23] to-[#183b33] text-white`}
@@ -76,7 +83,7 @@ export default function LoginPage() {
 							Create account
 						</a>
 					</div>
-					<SignInPanel />
+					<SignInPanel initialError={errorMessage} />
 					<p className="text-center text-xs text-slate-400">
 						By signing in, you agree to our Terms of Service and Privacy
 						Policy.

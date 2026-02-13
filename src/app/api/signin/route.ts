@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
 				name: data.user.user_metadata?.name || "",
 				emailConfirmed: !!data.user.email_confirmed_at,
 				onboardingCompleted: !!data.user.user_metadata?.onboarding_completed,
+				roles: data.user.app_metadata?.roles ?? [],
 			},
 			session: {
 				accessToken: data.session.access_token,

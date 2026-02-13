@@ -13,14 +13,13 @@ const fraunces = Fraunces({
 	weight: ["600", "700"],
 });
 
-export default function LoginPage({
+export default async function LoginPage({
 	searchParams,
 }: {
-	searchParams?: { error?: string };
+	searchParams?: Promise<{ error?: string }>;
 }) {
-	const errorMessage = searchParams?.error
-		? decodeURIComponent(searchParams.error)
-		: "";
+	const params = searchParams ? await searchParams : undefined;
+	const errorMessage = params?.error ? decodeURIComponent(params.error) : "";
 	return (
 		<div
 			className={`${spaceGrotesk.className} min-h-screen bg-gradient-to-br from-[#0f1c1a] via-[#102a23] to-[#183b33] text-white`}

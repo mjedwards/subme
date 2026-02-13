@@ -20,14 +20,14 @@ export async function proxy(request: NextRequest) {
 		},
 	);
 
-	const { data } = await supabase.auth.getSession();
-	const hasSession = !!data.session;
+	const { data: userData, error: userError } = await supabase.auth.getUser();
+	const hasSession = !!userData.user && !userError;
 
 	if (!hasSession) {
 		return NextResponse.redirect(new URL("/login", request.url));
 	}
 
-	const roles = (data.session?.user.app_metadata?.roles as string[]) ?? [];
+	const roles = (userData.user?.app_metadata?.roles as string[]) ?? [];
 	const isStaff = roles.includes("staff") || roles.includes("owner");
 	const isCustomer = roles.includes("customer");
 

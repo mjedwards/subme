@@ -4,14 +4,14 @@ import { NextResponse } from "next/server";
 export async function GET() {
 	try {
 		const supabase = await createRouteHandlerSupabaseClient();
-		const { data: sessionData, error: sessionError } =
-			await supabase.auth.getSession();
+		const { data: userData, error: userError } =
+			await supabase.auth.getUser();
 
-		if (sessionError || !sessionData.session) {
+		if (userError || !userData.user) {
 			return NextResponse.json({ user: null }, { status: 401 });
 		}
 
-		const user = sessionData.session.user;
+		const user = userData.user;
 
 		const [{ data: staffRows, error: staffError }, { data: customerRows, error: customerError }] =
 			await Promise.all([

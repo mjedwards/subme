@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -74,6 +75,24 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		const admin = createAdminClient();
+		const { error: roleError } = await admin.auth.admin.updateUserById(
+			data.user.id,
+			{
+				app_metadata: {
+					roles: ["customer"],
+				},
+			},
+		);
+
+		if (roleError) {
+			console.error("Role assignment error", roleError);
+			return NextResponse.json(
+				{ error: "Account created but role setup failed." },
+				{ status: 500 },
+			);
+		}
+
 		const needsConfirmation = !data.session;
 
 		return NextResponse.json({
@@ -82,6 +101,7 @@ export async function POST(request: NextRequest) {
 				id: data.user.id,
 				email: data.user.email,
 				emailConfirmed: data.user.email_confirmed_at ? true : false,
+				roles: ["customer"],
 			},
 			needsConfirmation,
 			message: needsConfirmation

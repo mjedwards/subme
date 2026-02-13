@@ -45,3 +45,8 @@ create trigger store_domains_set_updated_at
 before update on store_domains
 for each row
 execute function set_updated_at();
+
+create trigger leads_set_updated_at
+before update on leads
+for each row
+execute function set_updated_at();

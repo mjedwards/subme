@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 export type NavItem = {
@@ -18,6 +19,16 @@ type SideNavProps = {
 
 export default function SideNav({ sections }: SideNavProps) {
 	const [collapsed, setCollapsed] = useState(false);
+	const pathname = usePathname();
+	const allItems = sections.flatMap((section) => section.items);
+	const bestMatch =
+		allItems
+			.filter(
+				(item) =>
+					pathname === item.href ||
+					(pathname.startsWith(item.href + "/") && item.href !== "/"),
+			)
+			.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? "";
 
 	return (
 		<aside
@@ -70,17 +81,22 @@ export default function SideNav({ sections }: SideNavProps) {
 							</div>
 						)}
 						<nav className="mt-3 flex flex-col gap-2 text-sm">
-							{section.items.map((item) => (
-							<a
-								key={item.label}
-								href={item.href}
-								className={`cursor-pointer rounded-xl px-3 py-2 font-medium text-slate-700 transition hover:bg-[#e6f9ef] hover:text-[#0b2a24] hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7ef2a6]/60 ${
-									collapsed ? "text-center text-xs" : ""
-								}`}
-								>
-									{collapsed ? item.label.slice(0, 2) : item.label}
-								</a>
-							))}
+							{section.items.map((item) => {
+								const isActive = bestMatch === item.href;
+								return (
+									<a
+										key={item.label}
+										href={item.href}
+										className={`cursor-pointer rounded-xl px-3 py-2 font-medium transition hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7ef2a6]/60 ${
+											isActive
+												? "bg-[#e6f9ef] text-[#0b2a24]"
+												: "text-slate-700 hover:bg-[#e6f9ef] hover:text-[#0b2a24]"
+										} ${collapsed ? "text-center text-xs" : ""}`}
+									>
+										{collapsed ? item.label.slice(0, 2) : item.label}
+									</a>
+								);
+							})}
 						</nav>
 					</div>
 				))}

@@ -24,6 +24,7 @@ export async function GET(request: Request) {
 	}
 
 	const { data } = await supabase.auth.getUser();
+	console.log(data);
 	const roles = (data.user?.app_metadata?.roles as string[]) ?? [];
 
 	if (roles.includes("owner") || roles.includes("staff")) {

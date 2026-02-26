@@ -3,10 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+type SignUpRole = "customer" | "owner";
+
 interface SignUpRequest {
 	email: string;
 	name?: string;
 	password: string;
+	role: SignUpRole;
 }
 
 function getOrigin(req: NextRequest) {
@@ -32,7 +35,8 @@ export async function POST(request: NextRequest) {
 			});
 		}
 
-		const { email, name, password } = body;
+		const { email, name, password, role } = body;
+		const userRole: SignUpRole = role === "owner" ? "owner" : "customer";
 
 		const supabase = await createRouteHandlerSupabaseClient();
 
@@ -80,7 +84,7 @@ export async function POST(request: NextRequest) {
 			data.user.id,
 			{
 				app_metadata: {
-					roles: ["customer"],
+					roles: [userRole],
 				},
 			},
 		);
@@ -101,7 +105,7 @@ export async function POST(request: NextRequest) {
 				id: data.user.id,
 				email: data.user.email,
 				emailConfirmed: data.user.email_confirmed_at ? true : false,
-				roles: ["customer"],
+				roles: [userRole],
 			},
 			needsConfirmation,
 			message: needsConfirmation

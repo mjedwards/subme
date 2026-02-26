@@ -4,7 +4,7 @@ import { makeFetch } from "@/utils/helper";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type Role = "customer" | "store";
+type Role = "customer" | "owner";
 
 const roleCopy = {
 	customer: {
@@ -18,7 +18,7 @@ const roleCopy = {
 			{ label: "Password", type: "password", name: "password" },
 		],
 	},
-	store: {
+	owner: {
 		headline: "Create your store account",
 		subtitle: "Launch subscriptions for every location you manage.",
 		button: "Create store account",
@@ -73,11 +73,12 @@ export default function SignUpPanel() {
 			method: "POST",
 			data: {
 				name:
-					role === "store"
+					role === "owner"
 						? user.storeName
 						: `${user.firstName} ${user.lastName}`,
 				email: user.email,
 				password: user.password,
+				role
 			},
 		});
 
@@ -115,9 +116,9 @@ export default function SignUpPanel() {
 					</button>
 					<button
 						type='button'
-						onClick={() => setRole("store")}
+						onClick={() => setRole("owner")}
 						className={`flex-1 rounded-full px-4 py-2 font-medium transition ${
-							role === "store"
+							role === "owner"
 								? "bg-white text-slate-900 shadow-sm"
 								: "text-slate-500"
 						}`}>

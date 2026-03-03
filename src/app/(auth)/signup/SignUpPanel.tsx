@@ -23,7 +23,7 @@ const roleCopy = {
 		subtitle: "Launch subscriptions for every location you manage.",
 		button: "Create store account",
 		fields: [
-			{ label: "Store name", type: "text", name: "storeName" },
+			{ label: "Owner name", type: "text", name: "ownerName" },
 			{ label: "Work email", type: "email", name: "email" },
 			{ label: "Password", type: "password", name: "password" },
 			{ label: "Number of locations", type: "text", name: "locations" },
@@ -38,9 +38,9 @@ export default function SignUpPanel() {
 	const [user, setUser] = useState({
 		firstName: "",
 		lastName: "",
+		ownerName: "",
 		email: "",
 		password: "",
-		storeName: "",
 		locations: "",
 	});
 	const [error, setError] = useState("");
@@ -74,11 +74,11 @@ export default function SignUpPanel() {
 			data: {
 				name:
 					role === "owner"
-						? user.storeName
+						? user.ownerName
 						: `${user.firstName} ${user.lastName}`,
 				email: user.email,
 				password: user.password,
-				role
+				role,
 			},
 		});
 
@@ -89,7 +89,9 @@ export default function SignUpPanel() {
 		}
 
 		if (result.data?.needsConfirmation) {
-			router.push(`/signup/confirm?message=${encodeURIComponent(result.data.message)}`);
+			router.push(
+				`/signup/confirm?message=${encodeURIComponent(result.data.message)}`,
+			);
 		} else {
 			const roles = (result.data?.user?.roles as string[]) ?? [];
 			if (roles.includes("owner") || roles.includes("staff")) {

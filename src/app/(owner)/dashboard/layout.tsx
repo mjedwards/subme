@@ -19,7 +19,9 @@ export default async function OwnerAccountLayout({
 
 	const supabase = await createRouteHandlerSupabaseClient();
 	const { data } = await supabase.auth.getUser();
-	const userName = data.user?.user_metadata?.name ?? data.user?.email ?? "";
+	const fullName = data.user?.user_metadata?.name ?? "";
+	const firstName = fullName.trim().split(/\s+/)[0] ?? "";
+	const userName = firstName || data.user?.email || "";
 
 	return (
 		<DashboardShell

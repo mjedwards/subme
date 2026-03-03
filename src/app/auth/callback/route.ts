@@ -24,12 +24,31 @@ export async function GET(request: Request) {
 	}
 
 	const { data } = await supabase.auth.getUser();
-	console.log(data);
+	const user = data.user;
 	const roles = (data.user?.app_metadata?.roles as string[]) ?? [];
+
+	const warning = "profile_update_failed";
+	const redirectUrl = new URL("/account", request.url);
+	let upsertError = false;
+
+	if (user) {
+		const { error } = await supabase.from("profiles").upsert({
+			user_id: user?.id,
+			email: user?.email,
+			name: user?.user_metadata?.name ?? "",
+		});
+		if (error) {
+			upsertError = true;
+		}
+	}
+
+	if (upsertError) {
+		redirectUrl.searchParams.set("toast", warning);
+	}
 
 	if (roles.includes("owner") || roles.includes("staff")) {
 		return NextResponse.redirect(new URL("/dashboard", request.url));
 	}
 
-	return NextResponse.redirect(new URL("/account", request.url));
+	return NextResponse.redirect(redirectUrl);
 }

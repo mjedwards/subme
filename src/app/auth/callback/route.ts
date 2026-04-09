@@ -26,17 +26,37 @@ export async function GET(request: Request) {
 	const { data } = await supabase.auth.getUser();
 	const user = data.user;
 	const roles = (data.user?.app_metadata?.roles as string[]) ?? [];
+	const isOwner = roles.includes("owner");
 
 	const warning = "profile_update_failed";
 	const redirectUrl = new URL("/account", request.url);
 	let upsertError = false;
 
 	if (user) {
-		const { error } = await supabase.from("profiles").upsert({
+		const { data: existingProfile } = await supabase
+			.from("profiles")
+			.select("onboarding_stage, onboarding_complete")
+			.eq("user_id", user.id)
+			.maybeSingle();
+
+		const shouldInitializeOnboarding =
+			isOwner &&
+			(!existingProfile ||
+				(!existingProfile.onboarding_stage &&
+					!existingProfile.onboarding_complete));
+
+		const profilePayload: Record<string, string | boolean | undefined> = {
 			user_id: user?.id,
 			email: user?.email,
 			name: user?.user_metadata?.name ?? "",
-		});
+		};
+
+		if (shouldInitializeOnboarding) {
+			profilePayload.onboarding_stage = "store";
+			profilePayload.onboarding_complete = false;
+		}
+
+		const { error } = await supabase.from("profiles").upsert(profilePayload);
 		if (error) {
 			upsertError = true;
 		}
@@ -47,6 +67,11 @@ export async function GET(request: Request) {
 	}
 
 	if (roles.includes("owner") || roles.includes("staff")) {
+		if (isOwner) {
+			return NextResponse.redirect(
+				new URL("/dashboard/onboarding", request.url),
+			);
+		}
 		return NextResponse.redirect(new URL("/dashboard", request.url));
 	}
 

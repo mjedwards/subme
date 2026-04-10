@@ -10,6 +10,7 @@ interface SignUpRequest {
 	name?: string;
 	password: string;
 	role: SignUpRole;
+	next?: string;
 }
 
 function getOrigin(req: NextRequest) {
@@ -17,6 +18,14 @@ function getOrigin(req: NextRequest) {
 	const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
 	if (proto && host) return `${proto}://${host}`;
 	return req.nextUrl.origin;
+}
+
+function sanitizeNext(next?: string) {
+	if (!next || !next.startsWith("/") || next.startsWith("//")) {
+		return "";
+	}
+
+	return next;
 }
 
 export async function POST(request: NextRequest) {
@@ -36,15 +45,19 @@ export async function POST(request: NextRequest) {
 		}
 
 		const { email, name, password, role } = body;
+		const next = sanitizeNext(body.next);
 		const userRole: SignUpRole = role === "owner" ? "owner" : "customer";
 
 		const supabase = await createRouteHandlerSupabaseClient();
+		const emailRedirectTo = next
+			? `${redirectURL}/auth/callback?next=${encodeURIComponent(next)}`
+			: `${redirectURL}/auth/callback`;
 
 		const { data, error } = await supabase.auth.signUp({
 			email: email,
 			password: password,
 			options: {
-				emailRedirectTo: `${redirectURL}/auth/callback`,
+				emailRedirectTo,
 				data: {
 					name: name,
 				},

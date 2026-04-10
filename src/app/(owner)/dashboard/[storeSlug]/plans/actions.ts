@@ -4,29 +4,36 @@ import { createPlanForStore } from "@/lib/plans/upsertPlan";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-function redirectWithError(message: string, storeSlug?: string) {
+function redirectWithError(storeSlug: string, message: string) {
 	const params = new URLSearchParams();
 	params.set("error", message);
-	if (storeSlug) params.set("storeSlug", storeSlug);
-	redirect(`/dashboard/onboarding/plan?${params.toString()}`);
+	redirect(`/dashboard/${encodeURIComponent(storeSlug)}/plans?${params.toString()}`);
 }
 
-export async function createPlan(formData: FormData) {
+export async function createDashboardPlan(formData: FormData) {
 	const storeSlug = (formData.get("storeSlug") ?? "").toString().trim();
 	const name = (formData.get("name") ?? "").toString().trim();
 	const description = (formData.get("description") ?? "").toString().trim();
 	const benefitType = (formData.get("benefitType") ?? "").toString().trim();
 	const redemptionsRaw = (formData.get("redemptions") ?? "").toString().trim();
 	const redemptions = Number.parseInt(redemptionsRaw || "1", 10);
+	const active = (formData.get("active") ?? "on").toString() === "on";
 
-	if (!storeSlug) redirectWithError("Store is missing. Please create a store.");
-	if (!name) redirectWithError("Plan name is required.", storeSlug);
+	if (!storeSlug) {
+		redirect("/dashboard");
+	}
+
+	if (!name) {
+		redirectWithError(storeSlug, "Plan name is required.");
+	}
 
 	const supabase = await createRouteHandlerSupabaseClient();
 	const { data: authData } = await supabase.auth.getUser();
 	const user = authData.user;
 
-	if (!user) redirectWithError("Please sign in again to continue.", storeSlug);
+	if (!user) {
+		redirectWithError(storeSlug, "Please sign in again to continue.");
+	}
 
 	const result = await createPlanForStore({
 		supabase,
@@ -37,16 +44,13 @@ export async function createPlan(formData: FormData) {
 			description,
 			benefitType,
 			redemptionsPerPeriod: redemptions,
-			active: true,
+			active,
 		},
 	});
 
-	if (result.error) redirectWithError(result.error, storeSlug);
+	if (result.error) {
+		redirectWithError(storeSlug, result.error);
+	}
 
-	await supabase
-		.from("profiles")
-		.update({ onboarding_stage: "staff", onboarding_complete: false })
-		.eq("user_id", user.id);
-
-	redirect(`/dashboard/onboarding/staff?storeSlug=${encodeURIComponent(storeSlug)}`);
+	redirect(`/dashboard/${encodeURIComponent(storeSlug)}/plans`);
 }

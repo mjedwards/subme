@@ -20,9 +20,10 @@ const roleCopy = {
 
 type SignInPanelProps = {
 	initialError?: string;
+	next?: string;
 };
 
-export default function SignInPanel({ initialError }: SignInPanelProps) {
+export default function SignInPanel({ initialError, next }: SignInPanelProps) {
 	const router = useRouter();
 	const [user, setUser] = useState({
 		email: "",
@@ -68,11 +69,12 @@ export default function SignInPanel({ initialError }: SignInPanelProps) {
 			return;
 		}
 		const roles = (result.data?.user?.roles as string[]) ?? [];
+		const destination = sanitizeNext(next);
 		if (roles.includes("owner") || roles.includes("staff")) {
-			router.push("/dashboard");
+			router.push(destination || "/dashboard");
 			return;
 		}
-		router.push("/account");
+		router.push(destination || "/account");
 	};
 
 	return (
@@ -163,4 +165,12 @@ export default function SignInPanel({ initialError }: SignInPanelProps) {
 			</div>
 		</div>
 	);
+}
+
+function sanitizeNext(next?: string) {
+	if (!next || !next.startsWith("/") || next.startsWith("//")) {
+		return "";
+	}
+
+	return next;
 }

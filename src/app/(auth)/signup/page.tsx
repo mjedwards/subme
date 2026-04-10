@@ -13,7 +13,13 @@ const fraunces = Fraunces({
 	weight: ["600", "700"],
 });
 
-export default function SignUpPage() {
+export default async function SignUpPage({
+	searchParams,
+}: {
+	searchParams?: Promise<{ next?: string }>;
+}) {
+	const params = await searchParams;
+	const next = params?.next ? decodeURIComponent(params.next) : "";
 	return (
 		<div
 			className={`${spaceGrotesk.className} min-h-screen bg-gradient-to-br from-[#0f1c1a] via-[#102a23] to-[#183b33] text-white`}>
@@ -72,11 +78,13 @@ export default function SignUpPage() {
 				<section className='flex flex-col justify-between rounded-[28px] bg-white p-8 text-slate-900 shadow-[0_30px_80px_rgba(0,0,0,0.18)] lg:p-12'>
 					<div className='flex items-center justify-between text-sm text-slate-500'>
 						<p>Already have an account?</p>
-						<a className='font-semibold text-slate-900' href='/login'>
+						<a
+							className='font-semibold text-slate-900'
+							href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>
 							Log in
 						</a>
 					</div>
-					<SignUpPanel />
+					<SignUpPanel next={next} />
 					<p className='text-center text-xs text-slate-400'>
 						By creating your account, you agree to our Terms of Service and
 						Privacy Policy.

@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type Role = "customer" | "owner";
+type SignUpPanelProps = {
+	next?: string;
+};
 
 const roleCopy = {
 	customer: {
@@ -31,7 +34,7 @@ const roleCopy = {
 	},
 };
 
-export default function SignUpPanel() {
+export default function SignUpPanel({ next }: SignUpPanelProps) {
 	const router = useRouter();
 	const [role, setRole] = useState<Role>("customer");
 	const copy = roleCopy[role];
@@ -79,6 +82,7 @@ export default function SignUpPanel() {
 				email: user.email,
 				password: user.password,
 				role,
+				next,
 			},
 		});
 
@@ -89,16 +93,20 @@ export default function SignUpPanel() {
 		}
 
 		if (result.data?.needsConfirmation) {
-			router.push(
-				`/signup/confirm?message=${encodeURIComponent(result.data.message)}`,
-			);
+			const destination = new URLSearchParams();
+			destination.set("message", result.data.message);
+			if (next) {
+				destination.set("next", next);
+			}
+			router.push(`/signup/confirm?${destination.toString()}`);
 		} else {
 			const roles = (result.data?.user?.roles as string[]) ?? [];
+			const destination = sanitizeNext(next);
 			if (roles.includes("owner") || roles.includes("staff")) {
-				router.push("/dashboard");
+				router.push(destination || "/dashboard");
 				return;
 			}
-			router.push("/account");
+			router.push(destination || "/account");
 		}
 	};
 
@@ -195,4 +203,12 @@ export default function SignUpPanel() {
 			</div>
 		</div>
 	);
+}
+
+function sanitizeNext(next?: string) {
+	if (!next || !next.startsWith("/") || next.startsWith("//")) {
+		return "";
+	}
+
+	return next;
 }

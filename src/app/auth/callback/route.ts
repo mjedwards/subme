@@ -1,9 +1,18 @@
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+function sanitizeNext(next?: string | null) {
+	if (!next || !next.startsWith("/") || next.startsWith("//")) {
+		return "";
+	}
+
+	return next;
+}
+
 export async function GET(request: Request) {
 	const url = new URL(request.url);
 	const code = url.searchParams.get("code");
+	const next = sanitizeNext(url.searchParams.get("next"));
 
 	if (!code) {
 		return NextResponse.redirect(
@@ -29,7 +38,7 @@ export async function GET(request: Request) {
 	const isOwner = roles.includes("owner");
 
 	const warning = "profile_update_failed";
-	const redirectUrl = new URL("/account", request.url);
+	const redirectUrl = new URL(next || "/account", request.url);
 	let upsertError = false;
 
 	if (user) {
@@ -69,10 +78,10 @@ export async function GET(request: Request) {
 	if (roles.includes("owner") || roles.includes("staff")) {
 		if (isOwner) {
 			return NextResponse.redirect(
-				new URL("/dashboard/onboarding", request.url),
+				new URL(next || "/dashboard/onboarding", request.url),
 			);
 		}
-		return NextResponse.redirect(new URL("/dashboard", request.url));
+		return NextResponse.redirect(new URL(next || "/dashboard", request.url));
 	}
 
 	return NextResponse.redirect(redirectUrl);

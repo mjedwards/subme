@@ -16,10 +16,11 @@ const fraunces = Fraunces({
 export default async function LoginPage({
 	searchParams,
 }: {
-	searchParams?: Promise<{ error?: string }>;
+	searchParams?: Promise<{ error?: string; next?: string }>;
 }) {
 	const params = searchParams ? await searchParams : undefined;
 	const errorMessage = params?.error ? decodeURIComponent(params.error) : "";
+	const next = params?.next ? decodeURIComponent(params.next) : "";
 	return (
 		<div
 			className={`${spaceGrotesk.className} min-h-screen bg-gradient-to-br from-[#0f1c1a] via-[#102a23] to-[#183b33] text-white`}
@@ -78,11 +79,14 @@ export default async function LoginPage({
 				<section className="flex flex-col justify-between rounded-[28px] bg-white p-8 text-slate-900 shadow-[0_30px_80px_rgba(0,0,0,0.18)] lg:p-12">
 					<div className="flex items-center justify-between text-sm text-slate-500">
 						<p>New here?</p>
-						<a className="font-semibold text-slate-900" href="/signup">
+						<a
+							className="font-semibold text-slate-900"
+							href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
+						>
 							Create account
 						</a>
 					</div>
-					<SignInPanel initialError={errorMessage} />
+					<SignInPanel initialError={errorMessage} next={next} />
 					<p className="text-center text-xs text-slate-400">
 						By signing in, you agree to our Terms of Service and Privacy
 						Policy.

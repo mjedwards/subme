@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
@@ -19,6 +20,7 @@ type QrCodeResponse = {
 };
 
 export default function QrCodeCard() {
+	const searchParams = useSearchParams();
 	const [qrCode, setQrCode] = useState<QrCodeResponse["qrCode"] | null>(null);
 	const [qrImageUrl, setQrImageUrl] = useState("");
 	const [error, setError] = useState("");
@@ -26,8 +28,10 @@ export default function QrCodeCard() {
 
 	const loadQrCode = useCallback(async () => {
 		setError("");
+		const storeId = searchParams.get("storeId")?.trim() ?? "";
+		const apiUrl = storeId ? `/api/qr?storeId=${encodeURIComponent(storeId)}` : "/api/qr";
 
-		const response = await fetch("/api/qr", {
+		const response = await fetch(apiUrl, {
 			cache: "no-store",
 			credentials: "include",
 		});
@@ -54,7 +58,7 @@ export default function QrCodeCard() {
 
 		setQrCode(payload.qrCode);
 		setQrImageUrl(imageUrl);
-	}, []);
+	}, [searchParams]);
 
 	useEffect(() => {
 		startTransition(() => {

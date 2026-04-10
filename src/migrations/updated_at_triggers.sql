@@ -41,6 +41,11 @@ before update on redemptions
 for each row
 execute function set_updated_at();
 
+create trigger staff_invites_set_updated_at
+before update on staff_invites
+for each row
+execute function set_updated_at();
+
 create trigger store_domains_set_updated_at
 before update on store_domains
 for each row

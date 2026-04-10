@@ -16,10 +16,12 @@ const fraunces = Fraunces({
 export default async function SignUpPage({
 	searchParams,
 }: {
-	searchParams?: Promise<{ next?: string }>;
+	searchParams?: Promise<{ next?: string; email?: string; role?: string }>;
 }) {
 	const params = await searchParams;
 	const next = params?.next ? decodeURIComponent(params.next) : "";
+	const email = params?.email ? decodeURIComponent(params.email) : "";
+	const role = params?.role ? decodeURIComponent(params.role) : "";
 	return (
 		<div
 			className={`${spaceGrotesk.className} min-h-screen bg-gradient-to-br from-[#0f1c1a] via-[#102a23] to-[#183b33] text-white`}>
@@ -84,7 +86,7 @@ export default async function SignUpPage({
 							Log in
 						</a>
 					</div>
-					<SignUpPanel next={next} />
+					<SignUpPanel next={next} initialEmail={email} initialRole={role} />
 					<p className='text-center text-xs text-slate-400'>
 						By creating your account, you agree to our Terms of Service and
 						Privacy Policy.

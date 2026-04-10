@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
-type SignUpRole = "customer" | "owner";
+type SignUpRole = "customer" | "owner" | "staff";
 
 interface SignUpRequest {
 	email: string;
@@ -46,7 +46,8 @@ export async function POST(request: NextRequest) {
 
 		const { email, name, password, role } = body;
 		const next = sanitizeNext(body.next);
-		const userRole: SignUpRole = role === "owner" ? "owner" : "customer";
+		const userRole: SignUpRole =
+			role === "owner" ? "owner" : role === "staff" ? "staff" : "customer";
 
 		const supabase = await createRouteHandlerSupabaseClient();
 		const emailRedirectTo = next

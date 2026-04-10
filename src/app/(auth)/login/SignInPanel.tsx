@@ -21,12 +21,17 @@ const roleCopy = {
 type SignInPanelProps = {
 	initialError?: string;
 	next?: string;
+	initialEmail?: string;
 };
 
-export default function SignInPanel({ initialError, next }: SignInPanelProps) {
+export default function SignInPanel({
+	initialError,
+	next,
+	initialEmail = "",
+}: SignInPanelProps) {
 	const router = useRouter();
 	const [user, setUser] = useState({
-		email: "",
+		email: initialEmail,
 		password: "",
 	});
 	const [error, setError] = useState<string>("");
@@ -115,6 +120,7 @@ export default function SignInPanel({ initialError, next }: SignInPanelProps) {
 							onChange={handleChange}
 							type='email'
 							name='email'
+							value={user.email}
 							className={`h-11 rounded-xl border bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition focus:ring-2 ${
 								fieldErrors.email
 									? "border-red-300 focus:border-red-400 focus:ring-red-100"
@@ -133,6 +139,7 @@ export default function SignInPanel({ initialError, next }: SignInPanelProps) {
 							onChange={handleChange}
 							type='password'
 							name='password'
+							value={user.password}
 							className={`h-11 rounded-xl border bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition focus:ring-2 ${
 								fieldErrors.password
 									? "border-red-300 focus:border-red-400 focus:ring-red-100"

@@ -6,32 +6,43 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 function redirectWithMessage(
+	storeSlug: string,
 	message: string,
-	storeSlug?: string,
 	type: "error" | "success" = "error",
 ) {
 	const params = new URLSearchParams();
 	params.set(type, message);
-	if (storeSlug) params.set("storeSlug", storeSlug);
-	redirect(`/dashboard/onboarding/staff?${params.toString()}`);
+	redirect(
+		`/dashboard/${encodeURIComponent(storeSlug)}/settings?${params.toString()}`,
+	);
 }
 
-export async function inviteStaff(formData: FormData) {
+export async function sendStaffInvite(formData: FormData) {
 	const storeSlug = (formData.get("storeSlug") ?? "").toString().trim();
 	const email = (formData.get("email") ?? "").toString().trim().toLowerCase();
 
-	if (!storeSlug) redirectWithMessage("Store is missing. Please create a store.");
-	if (!email) redirectWithMessage("Staff email is required.", storeSlug);
+	if (!storeSlug) {
+		redirect("/dashboard");
+	}
+
+	if (!email) {
+		redirectWithMessage(storeSlug, "Staff email is required.");
+	}
 
 	const supabase = await createRouteHandlerSupabaseClient();
 	const { data: authData } = await supabase.auth.getUser();
 	const user = authData.user;
 
-	if (!user) redirectWithMessage("Please sign in again to continue.", storeSlug);
+	if (!user) {
+		redirectWithMessage(storeSlug, "Please sign in again to continue.");
+	}
 
 	const headerStore = await headers();
 	const proto = headerStore.get("x-forwarded-proto") ?? "http";
-	const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "localhost:3000";
+	const host =
+		headerStore.get("x-forwarded-host") ??
+		headerStore.get("host") ??
+		"localhost:3000";
 	const origin = `${proto}://${host}`;
 
 	const result = await createStaffInvite({
@@ -43,13 +54,8 @@ export async function inviteStaff(formData: FormData) {
 	});
 
 	if (result.error) {
-		redirectWithMessage(result.error, storeSlug);
+		redirectWithMessage(storeSlug, result.error);
 	}
 
-	await supabase
-		.from("profiles")
-		.update({ onboarding_stage: "done", onboarding_complete: true })
-		.eq("user_id", user.id);
-
-	redirectWithMessage(`Invite ready for ${email}.`, storeSlug, "success");
+	redirectWithMessage(storeSlug, `Invite ready for ${email}.`, "success");
 }

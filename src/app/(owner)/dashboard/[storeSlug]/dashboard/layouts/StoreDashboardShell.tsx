@@ -19,7 +19,9 @@ export default function StoreDashboardShell({
 	return (
 		<>
 			<StoreTopNav items={items} />
-			<main className='flex-1 px-8 py-6'>{children}</main>
+			<main className="mx-auto w-full max-w-6xl min-w-0 px-6 py-6 lg:px-8">
+				{children}
+			</main>
 		</>
 	);
 }

@@ -4,9 +4,11 @@ import { makeFetch } from "@/utils/helper";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type Role = "customer" | "owner";
+type Role = "customer" | "owner" | "staff";
 type SignUpPanelProps = {
 	next?: string;
+	initialEmail?: string;
+	initialRole?: string;
 };
 
 const roleCopy = {
@@ -32,17 +34,33 @@ const roleCopy = {
 			{ label: "Number of locations", type: "text", name: "locations" },
 		],
 	},
+	staff: {
+		headline: "Create your staff account",
+		subtitle: "Set up the account that will scan and redeem for your store.",
+		button: "Create staff account",
+		fields: [
+			{ label: "Full name", type: "text", name: "ownerName" },
+			{ label: "Work email", type: "email", name: "email" },
+			{ label: "Password", type: "password", name: "password" },
+		],
+	},
 };
 
-export default function SignUpPanel({ next }: SignUpPanelProps) {
+export default function SignUpPanel({
+	next,
+	initialEmail = "",
+	initialRole = "customer",
+}: SignUpPanelProps) {
 	const router = useRouter();
-	const [role, setRole] = useState<Role>("customer");
+	const normalizedRole: Role =
+		initialRole === "owner" || initialRole === "staff" ? initialRole : "customer";
+	const [role, setRole] = useState<Role>(normalizedRole);
 	const copy = roleCopy[role];
 	const [user, setUser] = useState({
 		firstName: "",
 		lastName: "",
 		ownerName: "",
-		email: "",
+		email: initialEmail,
 		password: "",
 		locations: "",
 	});
@@ -114,26 +132,34 @@ export default function SignUpPanel({ next }: SignUpPanelProps) {
 		<div className='flex flex-1 flex-col justify-center'>
 			<div className='mx-auto flex w-full max-w-md flex-col gap-6'>
 				<div className='flex items-center justify-center gap-4 rounded-full bg-slate-100 p-1 text-sm'>
-					<button
-						type='button'
-						onClick={() => setRole("customer")}
-						className={`flex-1 rounded-full px-4 py-2 font-medium transition ${
-							role === "customer"
-								? "bg-white text-slate-900 shadow-sm"
-								: "text-slate-500"
-						}`}>
-						Customer
-					</button>
-					<button
-						type='button'
-						onClick={() => setRole("owner")}
-						className={`flex-1 rounded-full px-4 py-2 font-medium transition ${
-							role === "owner"
-								? "bg-white text-slate-900 shadow-sm"
-								: "text-slate-500"
-						}`}>
-						Store
-					</button>
+					{role === "staff" ? (
+						<div className='flex-1 rounded-full bg-white px-4 py-2 text-center font-medium text-slate-900 shadow-sm'>
+							Staff
+						</div>
+					) : (
+						<>
+							<button
+								type='button'
+								onClick={() => setRole("customer")}
+								className={`flex-1 rounded-full px-4 py-2 font-medium transition ${
+									role === "customer"
+										? "bg-white text-slate-900 shadow-sm"
+										: "text-slate-500"
+								}`}>
+								Customer
+							</button>
+							<button
+								type='button'
+								onClick={() => setRole("owner")}
+								className={`flex-1 rounded-full px-4 py-2 font-medium transition ${
+									role === "owner"
+										? "bg-white text-slate-900 shadow-sm"
+										: "text-slate-500"
+								}`}>
+								Store
+							</button>
+						</>
+					)}
 				</div>
 				<div className='text-center'>
 					<h2 className='text-3xl font-semibold text-slate-900'>
@@ -152,6 +178,7 @@ export default function SignUpPanel({ next }: SignUpPanelProps) {
 									onChange={handleChange}
 									type={field.type}
 									name={field.name}
+									value={user[field.name as keyof typeof user]}
 									className={`h-11 rounded-xl border bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition focus:ring-2 ${
 										fieldErrors[field.name]
 											? "border-red-300 focus:border-red-400 focus:ring-red-100"
@@ -175,6 +202,7 @@ export default function SignUpPanel({ next }: SignUpPanelProps) {
 								onChange={handleChange}
 								type={field.type}
 								name={field.name}
+								value={user[field.name as keyof typeof user]}
 								className={`h-11 rounded-xl border bg-white px-3 text-sm text-slate-900 shadow-sm outline-none transition focus:ring-2 ${
 									fieldErrors[field.name]
 										? "border-red-300 focus:border-red-400 focus:ring-red-100"

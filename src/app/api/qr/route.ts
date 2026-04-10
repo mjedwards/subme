@@ -19,6 +19,13 @@ type SubscriptionRow = {
 	current_period_end: string | null;
 };
 
+type RedemptionRow = {
+	subscription_id: string;
+	period_start: string;
+	redeemed_at: string;
+	note: string | null;
+};
+
 export async function GET(request: NextRequest) {
 	try {
 		const supabase = await createRouteHandlerSupabaseClient();
@@ -74,7 +81,9 @@ export async function GET(request: NextRequest) {
 		}
 
 		const now = new Date();
-		const candidates = getDistinctActiveSubscriptions((subscriptionRows ?? []) as SubscriptionRow[])
+		const candidates = getDistinctActiveSubscriptions(
+			(subscriptionRows ?? []) as SubscriptionRow[],
+		)
 			.map((subscription) => ({
 				customer: customersById.get(subscription.customer_id),
 				subscription,
@@ -110,6 +119,20 @@ export async function GET(request: NextRequest) {
 		}
 
 		const selected = selectBestCandidate(candidates, now);
+		const { data: redemptionRows, error: redemptionError } = await supabase
+			.from("redemptions")
+			.select("subscription_id, period_start, redeemed_at, note")
+			.eq("subscription_id", selected.subscription.id)
+			.eq("period_start", selected.subscription.current_period_start!)
+			.maybeSingle<RedemptionRow>();
+
+		if (redemptionError) {
+			return NextResponse.json(
+				{ error: "Failed to load redemption state for this subscription." },
+				{ status: 500 },
+			);
+		}
+
 		const token = createQrToken({
 			storeId: selected.subscription.store_id,
 			subscriptionId: selected.subscription.id,
@@ -134,6 +157,9 @@ export async function GET(request: NextRequest) {
 					status: selected.subscription.status,
 					currentPeriodStart: selected.subscription.current_period_start,
 					currentPeriodEnd: selected.subscription.current_period_end,
+					redeemedThisPeriod: !!redemptionRows,
+					redeemedAt: redemptionRows?.redeemed_at ?? null,
+					redemptionNote: redemptionRows?.note ?? null,
 				},
 			},
 			{

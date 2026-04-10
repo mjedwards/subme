@@ -215,11 +215,16 @@ function matchesTokenPayload(
 		return false;
 	}
 
-	if (subscription.current_period_start !== payload.periodStart) {
+	if (!sameInstant(subscription.current_period_start, payload.periodStart)) {
 		return false;
 	}
 
-	if ((subscription.current_period_end ?? undefined) !== payload.periodEnd) {
+	if (
+		!sameInstant(
+			subscription.current_period_end ?? undefined,
+			payload.periodEnd,
+		)
+	) {
 		return false;
 	}
 
@@ -228,6 +233,25 @@ function matchesTokenPayload(
 	}
 
 	return true;
+}
+
+function sameInstant(left?: string | null, right?: string) {
+	if (!left && !right) {
+		return true;
+	}
+
+	if (!left || !right) {
+		return false;
+	}
+
+	const leftTime = new Date(left).getTime();
+	const rightTime = new Date(right).getTime();
+
+	if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
+		return left === right;
+	}
+
+	return leftTime === rightTime;
 }
 
 function isRedeemableSubscription(subscription: SubscriptionRow, now: Date) {

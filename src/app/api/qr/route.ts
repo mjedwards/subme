@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 		}
 
 		const now = new Date();
-		const candidates = (subscriptionRows ?? [])
+		const candidates = getDistinctActiveSubscriptions((subscriptionRows ?? []) as SubscriptionRow[])
 			.map((subscription) => ({
 				customer: customersById.get(subscription.customer_id),
 				subscription,
@@ -186,4 +186,31 @@ function getPeriodEndDistance(subscription: SubscriptionRow, now: Date) {
 	return Math.abs(
 		new Date(subscription.current_period_end).getTime() - now.getTime(),
 	);
+}
+
+function getDistinctActiveSubscriptions(subscriptions: SubscriptionRow[]) {
+	const distinctByStoreAndPlan = new Map<string, SubscriptionRow>();
+
+	for (const subscription of subscriptions) {
+		const key = `${subscription.store_id}:${subscription.plan_id}`;
+		const existing = distinctByStoreAndPlan.get(key);
+
+		if (!existing) {
+			distinctByStoreAndPlan.set(key, subscription);
+			continue;
+		}
+
+		const existingPeriodEnd = existing.current_period_end
+			? new Date(existing.current_period_end).getTime()
+			: 0;
+		const nextPeriodEnd = subscription.current_period_end
+			? new Date(subscription.current_period_end).getTime()
+			: 0;
+
+		if (nextPeriodEnd >= existingPeriodEnd) {
+			distinctByStoreAndPlan.set(key, subscription);
+		}
+	}
+
+	return Array.from(distinctByStoreAndPlan.values());
 }

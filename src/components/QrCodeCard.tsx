@@ -16,6 +16,9 @@ type QrCodeResponse = {
 		status: string | null;
 		currentPeriodStart: string;
 		currentPeriodEnd: string | null;
+		redeemedThisPeriod: boolean;
+		redeemedAt: string | null;
+		redemptionNote: string | null;
 	};
 };
 
@@ -121,10 +124,31 @@ export default function QrCodeCard() {
 						</div>
 					) : null}
 
+					{qrCode?.redeemedThisPeriod ? (
+						<div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+							<p className="font-semibold">Already redeemed this period</p>
+							<p className="mt-1 text-emerald-800">
+								This subscription was redeemed on{" "}
+								{qrCode.redeemedAt
+									? formatDateTime(qrCode.redeemedAt)
+									: "this billing period"}
+								. Staff scans will stay blocked until your next period begins.
+							</p>
+							{qrCode.redemptionNote ? (
+								<p className="mt-2 text-emerald-800">
+									Note: {qrCode.redemptionNote}
+								</p>
+							) : null}
+						</div>
+					) : null}
+
 					<div className="grid gap-4 sm:grid-cols-2">
 						<InfoTile
 							label="Status"
-							value={formatStatus(qrCode?.status ?? null)}
+							value={formatStatus(
+								qrCode?.status ?? null,
+								qrCode?.redeemedThisPeriod ?? false,
+							)}
 						/>
 						<InfoTile
 							label="Expires"
@@ -186,7 +210,11 @@ function InfoTile({
 	);
 }
 
-function formatStatus(status: string | null) {
+function formatStatus(status: string | null, redeemedThisPeriod: boolean) {
+	if (redeemedThisPeriod) {
+		return "Redeemed this period";
+	}
+
 	if (!status) {
 		return "Unavailable";
 	}

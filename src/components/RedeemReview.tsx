@@ -53,6 +53,8 @@ type RedeemErrorResponse = {
 	};
 };
 
+type DuplicateRedemptionState = NonNullable<RedeemErrorResponse["redemption"]>;
+
 export default function RedeemReview({
 	token,
 	preview,
@@ -60,36 +62,51 @@ export default function RedeemReview({
 	const [note, setNote] = useState("");
 	const [error, setError] = useState("");
 	const [result, setResult] = useState<RedeemSuccessResponse | null>(null);
+	const [duplicateRedemption, setDuplicateRedemption] =
+		useState<DuplicateRedemptionState | null>(null);
 	const [isSubmitting, startTransition] = useTransition();
 
 	const handleSubmit = () => {
 		setError("");
+		setDuplicateRedemption(null);
 
 		startTransition(async () => {
-			const response = await fetch("/api/redeem", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				credentials: "include",
-				cache: "no-store",
-				body: JSON.stringify({
-					token,
-					note: note.trim() || undefined,
-				}),
-			});
+			try {
+				const response = await fetch("/api/redeem", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+					cache: "no-store",
+					body: JSON.stringify({
+						token,
+						note: note.trim() || undefined,
+					}),
+				});
 
-			const payload = (await response.json()) as
-				| RedeemSuccessResponse
-				| RedeemErrorResponse;
+				const payload = (await response.json()) as
+					| RedeemSuccessResponse
+					| RedeemErrorResponse;
 
-			if (!response.ok || !("success" in payload)) {
+				if (!response.ok || !("success" in payload)) {
+					setResult(null);
+
+					if (response.status === 409 && payload.redemption) {
+						setDuplicateRedemption(payload.redemption);
+						setError("");
+						return;
+					}
+
+					setError(payload.error ?? "Unable to complete redemption.");
+					return;
+				}
+
+				setResult(payload);
+			} catch {
 				setResult(null);
-				setError(payload.error ?? "Unable to complete redemption.");
-				return;
+				setError("Unable to reach the redemption service.");
 			}
-
-			setResult(payload);
 		});
 	};
 
@@ -130,6 +147,53 @@ export default function RedeemReview({
 					>
 						Scan next customer
 					</Link>
+				</div>
+			</section>
+		);
+	}
+
+	if (duplicateRedemption) {
+		return (
+			<section className="rounded-[2rem] border border-amber-200 bg-[linear-gradient(135deg,#fffbeb,#f8fafc)] p-6 shadow-sm">
+				<p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-700">
+					Already Redeemed
+				</p>
+				<h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
+					This customer has already redeemed this billing period.
+				</h2>
+				<p className="mt-3 text-sm leading-6 text-slate-700">
+					The current-period redemption was recorded at{" "}
+					{formatDateTime(duplicateRedemption.redeemed_at)}. No second
+					redemption was created.
+				</p>
+
+				<div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+					<InfoTile label="Store" value={preview.storeId} mono />
+					<InfoTile label="Plan" value={preview.planId || "Unavailable"} mono />
+					<InfoTile
+						label="Billing period"
+						value={formatPeriod(preview.periodStart, preview.periodEnd)}
+					/>
+					<InfoTile
+						label="Note"
+						value={duplicateRedemption.note || "No note added"}
+					/>
+				</div>
+
+				<div className="mt-6 flex flex-wrap gap-3">
+					<Link
+						href="/scan"
+						className="inline-flex h-11 items-center justify-center rounded-full bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-700"
+					>
+						Scan next customer
+					</Link>
+					<button
+						type="button"
+						onClick={() => setDuplicateRedemption(null)}
+						className="inline-flex h-11 items-center justify-center rounded-full border border-slate-300 px-5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
+					>
+						Review this token again
+					</button>
 				</div>
 			</section>
 		);

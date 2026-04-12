@@ -16,9 +16,9 @@ export async function createPlan(formData: FormData) {
 	const name = (formData.get("name") ?? "").toString().trim();
 	const description = (formData.get("description") ?? "").toString().trim();
 	const benefitType = (formData.get("benefitType") ?? "").toString().trim();
-	const stripePriceId = (formData.get("stripePriceId") ?? "").toString().trim();
 	const redemptionsRaw = (formData.get("redemptions") ?? "").toString().trim();
 	const redemptions = Number.parseInt(redemptionsRaw || "1", 10);
+	const active = (formData.get("active") ?? "").toString() === "on";
 
 	if (!storeSlug) redirectWithError("Store is missing. Please create a store.");
 	if (!name) redirectWithError("Plan name is required.", storeSlug);
@@ -37,9 +37,8 @@ export async function createPlan(formData: FormData) {
 			name,
 			description,
 			benefitType,
-			stripePriceId,
 			redemptionsPerPeriod: redemptions,
-			active: true,
+			active,
 		},
 	});
 

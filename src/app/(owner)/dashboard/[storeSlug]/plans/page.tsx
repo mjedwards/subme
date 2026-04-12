@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getOwnerBillingStatus } from "@/lib/stripe/connect";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase/server";
 import { createDashboardPlan } from "./actions";
 
@@ -14,6 +15,14 @@ export default async function SubscriptionPage({
 	const { storeSlug } = await params;
 	const resolvedSearchParams = await searchParams;
 	const supabase = await createRouteHandlerSupabaseClient();
+	const { data: authData } = await supabase.auth.getUser();
+	const user = authData.user;
+	const billing = user ? await getOwnerBillingStatus(user.id) : null;
+	const paymentsEnabled = !!(
+		billing?.stripeAccountId &&
+		billing.chargesEnabled &&
+		billing.payoutsEnabled
+	);
 	const { data: store } = await supabase
 		.from("stores")
 		.select("id, name, slug")
@@ -36,19 +45,28 @@ export default async function SubscriptionPage({
 					Store Plans
 				</p>
 				<h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
-					Create and test manual subscription offerings for{" "}
+					Create subscription offerings for{" "}
 					{store?.name ?? storeSlug}.
 				</h1>
 				<p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-					These plans power the no-Stripe QR test loop. Customers can subscribe
-					immediately from the public store page and receive a redeemable QR
-					code in their dashboard.
+					Build plans inside SubMe first, then enable payments when you are
+					ready to publish live customer offerings.
 				</p>
 			</section>
 
 			{resolvedSearchParams?.error ? (
 				<div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
 					{resolvedSearchParams.error}
+				</div>
+			) : null}
+			{!paymentsEnabled ? (
+				<div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+					Payments are not enabled yet. Plans can be created as drafts, but they
+					cannot go live until you{" "}
+					<Link href="/dashboard/settings" className="font-semibold text-amber-950">
+						enable payments
+					</Link>
+					.
 				</div>
 			) : null}
 
@@ -94,7 +112,7 @@ export default async function SubscriptionPage({
 													: "bg-slate-200 text-slate-600"
 											}`}
 										>
-											{plan.active ? "Active" : "Inactive"}
+											{plan.active ? "Live" : "Draft"}
 										</span>
 									</div>
 									<div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -108,14 +126,9 @@ export default async function SubscriptionPage({
 										/>
 										<InfoTile
 											label="Billing"
-											value={plan.stripe_price_id ? "Stripe" : "Manual test"}
+											value={paymentsEnabled && plan.active ? "Payments enabled" : "Draft only"}
 										/>
 									</div>
-									{plan.stripe_price_id ? (
-										<p className="mt-4 text-sm text-slate-500">
-											Stripe price: <span className="font-mono">{plan.stripe_price_id}</span>
-										</p>
-									) : null}
 								</article>
 							))
 						) : (
@@ -132,7 +145,7 @@ export default async function SubscriptionPage({
 						Add Plan
 					</p>
 					<h2 className="mt-2 text-2xl font-semibold text-slate-900">
-						Create a dummy subscription offering
+						Create a subscription offering
 					</h2>
 					<form action={createDashboardPlan} className="mt-6 space-y-4">
 						<input type="hidden" name="storeSlug" value={storeSlug} />
@@ -171,17 +184,6 @@ export default async function SubscriptionPage({
 							</label>
 							<label className="block">
 								<span className="text-sm font-medium text-slate-900">
-									Stripe price ID
-								</span>
-								<input
-									name="stripePriceId"
-									type="text"
-									placeholder="price_..."
-									className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-								/>
-							</label>
-							<label className="block">
-								<span className="text-sm font-medium text-slate-900">
 									Redemptions per period
 								</span>
 								<input
@@ -194,9 +196,22 @@ export default async function SubscriptionPage({
 							</label>
 						</div>
 						<label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-							<input type="checkbox" name="active" defaultChecked className="h-4 w-4" />
-							Make this plan visible on the public store page immediately
+							<input
+								type="checkbox"
+								name="active"
+								defaultChecked={paymentsEnabled}
+								disabled={!paymentsEnabled}
+								className="h-4 w-4"
+							/>
+							{paymentsEnabled
+								? "Publish this plan on the public store page immediately"
+								: "Enable payments before publishing this plan"}
 						</label>
+						{!paymentsEnabled ? (
+							<p className="text-xs text-slate-500">
+								This plan will be saved as a draft until payments are enabled.
+							</p>
+						) : null}
 						<button
 							type="submit"
 							className="inline-flex h-11 items-center justify-center rounded-full bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"

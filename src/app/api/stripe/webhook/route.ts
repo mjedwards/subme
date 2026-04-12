@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
 			id: randomUUID(),
 			event_id: event.id,
 			type: event.type,
+			stripe_account_id: event.account ?? null,
 			created_at: new Date(event.created * 1000).toISOString(),
 			payload: event as unknown as Record<string, unknown>,
 		});
@@ -50,8 +51,12 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		if (isCheckoutCompletedEvent(event)) {
+			await syncSubscriptionFromCheckoutSession(event.data.object, event, supabase);
+		}
+
 		if (isSubscriptionEvent(event)) {
-			await upsertSubscriptionFromStripe(event.data.object, supabase);
+			await upsertSubscriptionFromStripe(event.data.object, event, supabase);
 		}
 
 		return NextResponse.json({ received: true });
@@ -62,6 +67,16 @@ export async function POST(request: NextRequest) {
 			{ status: 400 },
 		);
 	}
+}
+
+function isCheckoutCompletedEvent(
+	event: Stripe.Event,
+): event is Stripe.Event & {
+	data: {
+		object: Stripe.Checkout.Session;
+	};
+} {
+	return event.type === "checkout.session.completed";
 }
 
 function isSubscriptionEvent(
@@ -80,6 +95,7 @@ function isSubscriptionEvent(
 
 async function upsertSubscriptionFromStripe(
 	subscription: Stripe.Subscription,
+	event: Stripe.Event,
 	supabase: ReturnType<typeof createAdminClient>,
 ) {
 	const storeId = subscription.metadata.store_id;
@@ -103,9 +119,12 @@ async function upsertSubscriptionFromStripe(
 
 	const { data: existingSubscription } = await supabase
 		.from("subscriptions")
-		.select("id")
+		.select("id, last_event_created")
 		.eq("stripe_subscription_id", subscription.id)
-		.maybeSingle();
+		.maybeSingle<{
+			id: string;
+			last_event_created: string | null;
+		}>();
 
 	const payload = {
 		store_id: storeId,
@@ -121,10 +140,96 @@ async function upsertSubscriptionFromStripe(
 		current_period_start: periodStart,
 		current_period_end: periodEnd,
 		cancel_at_period_end: subscription.cancel_at_period_end,
-		last_event_created: new Date().toISOString(),
+		last_event_created: new Date(event.created * 1000).toISOString(),
 	};
 
 	if (existingSubscription) {
+		const existingEventTime = existingSubscription.last_event_created
+			? new Date(existingSubscription.last_event_created).getTime()
+			: 0;
+		const nextEventTime = event.created * 1000;
+
+		if (existingEventTime > nextEventTime) {
+			return;
+		}
+
+		const { error } = await supabase
+			.from("subscriptions")
+			.update(payload)
+			.eq("id", existingSubscription.id);
+
+		if (error) {
+			throw error;
+		}
+
+		return;
+	}
+
+	const { error } = await supabase.from("subscriptions").insert({
+		id: randomUUID(),
+		...payload,
+	});
+
+	if (error) {
+		throw error;
+	}
+}
+
+async function syncSubscriptionFromCheckoutSession(
+	session: Stripe.Checkout.Session,
+	event: Stripe.Event,
+	supabase: ReturnType<typeof createAdminClient>,
+) {
+	if (session.mode !== "subscription" || !session.subscription) {
+		return;
+	}
+
+	const subscriptionId =
+		typeof session.subscription === "string"
+			? session.subscription
+			: session.subscription.id;
+
+	const storeId = session.metadata?.store_id;
+	const planId = session.metadata?.plan_id;
+	const customerId = session.metadata?.customer_id;
+
+	if (!storeId || !planId || !customerId) {
+		throw new Error("Checkout session metadata is incomplete.");
+	}
+
+	const { data: existingSubscription } = await supabase
+		.from("subscriptions")
+		.select("id, last_event_created")
+		.eq("stripe_subscription_id", subscriptionId)
+		.maybeSingle<{
+			id: string;
+			last_event_created: string | null;
+		}>();
+
+	const payload = {
+		store_id: storeId,
+		customer_id: customerId,
+		plan_id: planId,
+		provider: "stripe",
+		stripe_customer_id:
+			typeof session.customer === "string"
+				? session.customer
+				: session.customer?.id ?? null,
+		stripe_subscription_id: subscriptionId,
+		status: session.payment_status === "paid" ? "active" : "incomplete",
+		last_event_created: new Date(event.created * 1000).toISOString(),
+	};
+
+	if (existingSubscription) {
+		const existingEventTime = existingSubscription.last_event_created
+			? new Date(existingSubscription.last_event_created).getTime()
+			: 0;
+		const nextEventTime = event.created * 1000;
+
+		if (existingEventTime > nextEventTime) {
+			return;
+		}
+
 		const { error } = await supabase
 			.from("subscriptions")
 			.update(payload)

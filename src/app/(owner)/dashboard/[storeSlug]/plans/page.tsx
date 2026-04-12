@@ -32,7 +32,7 @@ export default async function SubscriptionPage({
 				? await supabase
 						.from("plans")
 						.select(
-							"id, name, description, benefit_type, redemptions_per_period, stripe_price_id, active, created_at",
+							"id, name, description, benefit_type, redemptions_per_period, stripe_price_id, amount_cents, currency, billing_interval, active, created_at",
 						)
 				.eq("store_id", store.id)
 				.order("created_at", { ascending: false })
@@ -78,7 +78,7 @@ export default async function SubscriptionPage({
 								Current Offerings
 							</p>
 							<h2 className="mt-2 text-2xl font-semibold text-slate-900">
-								Manual plans
+								Plan catalog
 							</h2>
 						</div>
 						<Link
@@ -125,8 +125,16 @@ export default async function SubscriptionPage({
 											value={`${plan.redemptions_per_period ?? 1} / period`}
 										/>
 										<InfoTile
+											label="Price"
+											value={formatPlanPrice(
+												plan.amount_cents,
+												plan.currency,
+												plan.billing_interval,
+											)}
+										/>
+										<InfoTile
 											label="Billing"
-											value={paymentsEnabled && plan.active ? "Payments enabled" : "Draft only"}
+											value={plan.active ? "Live" : "Draft only"}
 										/>
 									</div>
 								</article>
@@ -184,6 +192,35 @@ export default async function SubscriptionPage({
 							</label>
 							<label className="block">
 								<span className="text-sm font-medium text-slate-900">
+									Price
+								</span>
+								<input
+									name="amount"
+									type="number"
+									min="1"
+									step="0.01"
+									required
+									placeholder="9.99"
+									className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+								/>
+							</label>
+						</div>
+						<div className="grid gap-4 sm:grid-cols-2">
+							<label className="block">
+								<span className="text-sm font-medium text-slate-900">
+									Billing interval
+								</span>
+								<select
+									name="billingInterval"
+									defaultValue="month"
+									className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+								>
+									<option value="month">Monthly</option>
+									<option value="year">Yearly</option>
+								</select>
+							</label>
+							<label className="block">
+								<span className="text-sm font-medium text-slate-900">
 									Redemptions per period
 								</span>
 								<input
@@ -234,4 +271,21 @@ function InfoTile({ label, value }: { label: string; value: string }) {
 			<p className="mt-2 text-sm font-medium text-slate-900">{value}</p>
 		</div>
 	);
+}
+
+function formatPlanPrice(
+	amountCents: number | null,
+	currency: string | null,
+	billingInterval: string | null,
+) {
+	if (!amountCents) {
+		return "Unavailable";
+	}
+
+	const amount = new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: (currency || "usd").toUpperCase(),
+	}).format(amountCents / 100);
+
+	return `${amount} / ${billingInterval === "year" ? "year" : "month"}`;
 }

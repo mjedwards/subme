@@ -26,7 +26,7 @@ export default async function PublicStorePage({ params }: PublicStorePageProps) 
 	const { data: plans } = await supabase
 		.from("plans")
 		.select(
-			"id, name, description, benefit_type, redemptions_per_period, active",
+			"id, name, description, benefit_type, redemptions_per_period, amount_cents, currency, billing_interval, active",
 		)
 		.eq("store_id", store.id)
 		.eq("active", true)
@@ -83,7 +83,7 @@ export default async function PublicStorePage({ params }: PublicStorePageProps) 
 							Available Offerings
 						</p>
 						<h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
-							Choose a plan and generate your test QR.
+							Choose a plan and subscribe.
 						</h2>
 					</div>
 

@@ -168,6 +168,11 @@ export async function POST(request: NextRequest) {
 
 			const stripe = getStripeServerClient();
 			const customerId = customer.id;
+			const successUrl = new URL("/subscribe/success", request.nextUrl.origin);
+			successUrl.searchParams.set("storeId", store.id);
+			successUrl.searchParams.set("storeSlug", store.slug);
+			successUrl.searchParams.set("planId", plan.id);
+
 			const session = await stripe.checkout.sessions.create({
 				mode: "subscription",
 				line_items: [
@@ -177,7 +182,7 @@ export async function POST(request: NextRequest) {
 					},
 				],
 				customer_email: user.email ?? undefined,
-				success_url: `${request.nextUrl.origin}/account?storeId=${encodeURIComponent(store.id)}`,
+				success_url: successUrl.toString(),
 				cancel_url: `${request.nextUrl.origin}/${encodeURIComponent(store.slug)}`,
 				metadata: {
 					store_id: store.id,

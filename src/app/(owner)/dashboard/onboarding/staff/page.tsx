@@ -30,6 +30,11 @@ export default async function StaffOnboardingPage({
 				.order("created_at", { ascending: false })
 		: { data: [] };
 	const steps = [
+		{
+			id: "billing",
+			label: "Connect Stripe",
+			href: "/dashboard/onboarding/billing",
+		},
 		{ id: "store", label: "Create Store", href: "/dashboard/onboarding/store" },
 		{
 			id: "plan",

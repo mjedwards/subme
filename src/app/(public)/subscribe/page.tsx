@@ -57,11 +57,12 @@ export default async function SubscribePage({
 						Instant Subscribe
 					</p>
 					<h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900">
-						Preparing your test subscription.
+						Preparing your subscription.
 					</h1>
 					<p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">
-						This no-Stripe flow creates a live manual subscription immediately so
-						you can verify QR generation and redemption end to end.
+						If this plan has a Stripe price attached, you’ll be sent through
+						checkout. Manual plans still activate immediately for local QR
+						testing.
 					</p>
 				</section>
 

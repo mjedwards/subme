@@ -39,6 +39,7 @@ export async function proxy(request: NextRequest) {
 		pathname.startsWith("/redeem");
 	const isCustomerRoute = pathname.startsWith("/account");
 	const isOnboardingRoute = pathname.startsWith("/dashboard/onboarding");
+	const isBillingOnboardingRoute = pathname === "/dashboard/onboarding/billing";
 
 	if (isStaffRoute && !isStaff) {
 		const redirectTarget = isCustomer ? "/account" : "/login";
@@ -70,7 +71,7 @@ export async function proxy(request: NextRequest) {
 		const onboardingComplete = !!profile?.onboarding_complete;
 		const onboardingStage = profile?.onboarding_stage ?? "store";
 
-		if (onboardingComplete && isOnboardingRoute) {
+		if (onboardingComplete && isOnboardingRoute && !isBillingOnboardingRoute) {
 			return NextResponse.redirect(new URL("/dashboard", request.url));
 		}
 

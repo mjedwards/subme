@@ -16,6 +16,7 @@ export async function createPlan(formData: FormData) {
 	const name = (formData.get("name") ?? "").toString().trim();
 	const description = (formData.get("description") ?? "").toString().trim();
 	const benefitType = (formData.get("benefitType") ?? "").toString().trim();
+	const stripePriceId = (formData.get("stripePriceId") ?? "").toString().trim();
 	const redemptionsRaw = (formData.get("redemptions") ?? "").toString().trim();
 	const redemptions = Number.parseInt(redemptionsRaw || "1", 10);
 
@@ -36,6 +37,7 @@ export async function createPlan(formData: FormData) {
 			name,
 			description,
 			benefitType,
+			stripePriceId,
 			redemptionsPerPeriod: redemptions,
 			active: true,
 		},

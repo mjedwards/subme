@@ -121,6 +121,43 @@ export default async function PlanOnboardingPage({
 							<div className="space-y-2">
 								<label
 									className="text-sm font-medium text-slate-900"
+									htmlFor="amount"
+								>
+									Price
+								</label>
+								<input
+									id="amount"
+									name="amount"
+									type="number"
+									min="1"
+									step="0.01"
+									placeholder="9.99"
+									className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
+									required
+								/>
+							</div>
+						</div>
+						<div className="mt-4 grid gap-4 sm:grid-cols-2">
+							<div className="space-y-2">
+								<label
+									className="text-sm font-medium text-slate-900"
+									htmlFor="billingInterval"
+								>
+									Billing interval
+								</label>
+								<select
+									id="billingInterval"
+									name="billingInterval"
+									defaultValue="month"
+									className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
+								>
+									<option value="month">Monthly</option>
+									<option value="year">Yearly</option>
+								</select>
+							</div>
+							<div className="space-y-2">
+								<label
+									className="text-sm font-medium text-slate-900"
 									htmlFor="redemptions"
 								>
 									Redemptions per period

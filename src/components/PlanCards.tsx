@@ -6,6 +6,9 @@ type Plan = {
 	description: string | null;
 	benefit_type: string | null;
 	redemptions_per_period: number | null;
+	amount_cents: number | null;
+	currency: string | null;
+	billing_interval: string | null;
 	active: boolean | null;
 };
 
@@ -40,11 +43,18 @@ export default function PlanCards({
 						<div className="flex items-start justify-between gap-4">
 							<div>
 								<p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-									Manual Plan
+									Subscription Plan
 								</p>
 								<h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
 									{plan.name}
 								</h2>
+								<p className="mt-2 text-sm font-semibold text-slate-900">
+									{formatPlanPrice(
+										plan.amount_cents,
+										plan.currency,
+										plan.billing_interval,
+									)}
+								</p>
 							</div>
 							<span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
 								{plan.active ? "Active" : "Hidden"}
@@ -82,7 +92,7 @@ export default function PlanCards({
 										? isCurrentPlan
 											? "You already have this plan active for this store."
 											: "You already have an active subscription for this store."
-										: "This creates an active manual subscription immediately for QR testing."}
+										: "You will review this plan in checkout before your subscription starts."}
 								</p>
 							) : (
 								<p className="mt-3 text-xs text-slate-500">
@@ -96,6 +106,23 @@ export default function PlanCards({
 			})}
 		</div>
 	);
+}
+
+function formatPlanPrice(
+	amountCents: number | null,
+	currency: string | null,
+	billingInterval: string | null,
+) {
+	if (!amountCents) {
+		return "Price unavailable";
+	}
+
+	const amount = new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: (currency || "usd").toUpperCase(),
+	}).format(amountCents / 100);
+
+	return `${amount} / ${billingInterval === "year" ? "year" : "month"}`;
 }
 
 function StatRow({ label, value }: { label: string; value: string }) {

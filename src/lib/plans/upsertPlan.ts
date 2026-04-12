@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
+import { createStripeCatalogForPlan } from "@/lib/stripe/plans";
 
 type PlanInput = {
 	name: string;
@@ -7,6 +8,9 @@ type PlanInput = {
 	benefitType?: string;
 	redemptionsPerPeriod?: number;
 	active?: boolean;
+	amountCents?: number;
+	currency?: string;
+	billingInterval?: "month" | "year";
 };
 
 type UpsertPlanParams = {
@@ -49,6 +53,14 @@ export async function createPlanForStore({
 		plan.redemptionsPerPeriod > 0
 			? plan.redemptionsPerPeriod
 			: 1;
+	const amountCents =
+		typeof plan.amountCents === "number" &&
+		!Number.isNaN(plan.amountCents) &&
+		plan.amountCents > 0
+			? Math.round(plan.amountCents)
+			: null;
+	const currency = (plan.currency || "usd").trim().toLowerCase();
+	const billingInterval = plan.billingInterval === "year" ? "year" : "month";
 
 	const { data: billingProfile } = await supabase
 		.from("profiles")
@@ -70,13 +82,48 @@ export async function createPlanForStore({
 		return { error: "Enable payments before publishing a plan." };
 	}
 
+	if (!amountCents) {
+		return { error: "A valid subscription price is required." };
+	}
+
+	const planId = randomUUID();
+	let stripeProductId: string | null = null;
+	let stripePriceId: string | null = null;
+
+	if (plan.active && billingProfile?.stripe_account_id) {
+		try {
+			const stripeCatalog = await createStripeCatalogForPlan({
+				stripeAccountId: billingProfile.stripe_account_id,
+				storeName: store.name,
+				storeId: store.id,
+				planId,
+				name: plan.name,
+				description: plan.description,
+				amountCents,
+				currency,
+				billingInterval,
+			});
+
+			stripeProductId = stripeCatalog.productId;
+			stripePriceId = stripeCatalog.priceId;
+		} catch (error) {
+			console.error("Stripe plan creation error:", error);
+			return { error: "Could not create the billing product for this plan." };
+		}
+	}
+
 	const { error: planError } = await supabase.from("plans").insert({
-		id: randomUUID(),
+		id: planId,
 		store_id: store.id,
 		name: plan.name,
 		description: plan.description || null,
 		benefit_type: plan.benefitType || null,
 		redemptions_per_period: redemptionsPerPeriod,
+		stripe_product_id: stripeProductId,
+		stripe_price_id: stripePriceId,
+		amount_cents: amountCents,
+		currency,
+		billing_interval: billingInterval,
 		active: plan.active ?? true,
 	});
 

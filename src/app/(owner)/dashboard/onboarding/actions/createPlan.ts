@@ -18,6 +18,11 @@ export async function createPlan(formData: FormData) {
 	const benefitType = (formData.get("benefitType") ?? "").toString().trim();
 	const redemptionsRaw = (formData.get("redemptions") ?? "").toString().trim();
 	const redemptions = Number.parseInt(redemptionsRaw || "1", 10);
+	const amountRaw = (formData.get("amount") ?? "").toString().trim();
+	const amountValue = Number.parseFloat(amountRaw);
+	const billingInterval = (formData.get("billingInterval") ?? "month")
+		.toString()
+		.trim() as "month" | "year";
 	const active = (formData.get("active") ?? "").toString() === "on";
 
 	if (!storeSlug) redirectWithError("Store is missing. Please create a store.");
@@ -38,6 +43,8 @@ export async function createPlan(formData: FormData) {
 			description,
 			benefitType,
 			redemptionsPerPeriod: redemptions,
+			amountCents: Number.isNaN(amountValue) ? undefined : amountValue * 100,
+			billingInterval,
 			active,
 		},
 	});

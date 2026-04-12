@@ -13,7 +13,8 @@ type SubscribePanelProps = {
 type SubscribeResponse = {
 	success: true;
 	alreadySubscribed?: boolean;
-	redirectTo: string;
+	redirectTo?: string;
+	checkoutUrl?: string;
 };
 
 export default function SubscribePanel({
@@ -61,9 +62,21 @@ export default function SubscribePanel({
 			}
 
 			setStatus(payload.alreadySubscribed ? "already-subscribed" : "success");
-			router.replace(payload.redirectTo);
-			router.refresh();
-			window.location.assign(payload.redirectTo);
+
+			if (payload.checkoutUrl) {
+				window.location.assign(payload.checkoutUrl);
+				return;
+			}
+
+			if (payload.redirectTo) {
+				router.replace(payload.redirectTo);
+				router.refresh();
+				window.location.assign(payload.redirectTo);
+				return;
+			}
+
+			setStatus("idle");
+			setError("Subscription response did not include a destination.");
 		});
 	}, [planId, router, storeSlug]);
 
@@ -81,11 +94,11 @@ export default function SubscribePanel({
 			</p>
 			<div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
 				{status === "submitting" || isPending
-					? "Creating your subscription and QR access..."
+					? "Preparing your subscription..."
 					: status === "already-subscribed"
 						? "You already have an active test subscription for this plan. Redirecting to your account..."
 						: status === "success"
-							? "Subscription created. Redirecting to your account..."
+							? "Subscription ready. Redirecting now..."
 							: "Ready to create your subscription."}
 			</div>
 			{error ? (

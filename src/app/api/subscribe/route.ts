@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 
+import { getStripeServerClient } from "@/lib/stripe/server";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
 		const { data: plan } = await supabase
 			.from("plans")
-			.select("id, store_id, active")
+			.select("id, store_id, active, stripe_price_id, name")
 			.eq("id", planId)
 			.eq("store_id", store.id)
 			.maybeSingle();
@@ -121,6 +122,86 @@ export async function POST(request: NextRequest) {
 				success: true,
 				alreadySubscribed: true,
 				redirectTo: `/account?storeId=${encodeURIComponent(store.id)}`,
+			});
+		}
+
+		if (plan.stripe_price_id) {
+			const { data: ownerMembership } = await supabase
+				.from("store_staff")
+				.select("profile_id")
+				.eq("store_id", store.id)
+				.eq("role", "owner")
+				.eq("active", true)
+				.order("created_at", { ascending: true })
+				.limit(1)
+				.maybeSingle<{ profile_id: string }>();
+
+			if (!ownerMembership?.profile_id) {
+				return NextResponse.json(
+					{ error: "This store does not have an owner billing account configured." },
+					{ status: 409 },
+				);
+			}
+
+			const { data: ownerProfile } = await supabase
+				.from("profiles")
+				.select(
+					"stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled",
+				)
+				.eq("user_id", ownerMembership.profile_id)
+				.maybeSingle<{
+					stripe_account_id: string | null;
+					stripe_charges_enabled: boolean | null;
+					stripe_payouts_enabled: boolean | null;
+				}>();
+
+			if (
+				!ownerProfile?.stripe_account_id ||
+				!ownerProfile.stripe_charges_enabled ||
+				!ownerProfile.stripe_payouts_enabled
+			) {
+				return NextResponse.json(
+					{ error: "The store owner still needs to finish Stripe setup." },
+					{ status: 409 },
+				);
+			}
+
+			const stripe = getStripeServerClient();
+			const customerId = customer.id;
+			const session = await stripe.checkout.sessions.create({
+				mode: "subscription",
+				line_items: [
+					{
+						price: plan.stripe_price_id,
+						quantity: 1,
+					},
+				],
+				customer_email: user.email ?? undefined,
+				success_url: `${request.nextUrl.origin}/account?storeId=${encodeURIComponent(store.id)}`,
+				cancel_url: `${request.nextUrl.origin}/${encodeURIComponent(store.slug)}`,
+				metadata: {
+					store_id: store.id,
+					plan_id: plan.id,
+					customer_id: customerId,
+					profile_id: user.id,
+				},
+				subscription_data: {
+					metadata: {
+						store_id: store.id,
+						plan_id: plan.id,
+						customer_id: customerId,
+						profile_id: user.id,
+						owner_profile_id: ownerMembership.profile_id,
+					},
+				},
+			},
+			{
+				stripeAccount: ownerProfile.stripe_account_id,
+			});
+
+			return NextResponse.json({
+				success: true,
+				checkoutUrl: session.url,
 			});
 		}
 

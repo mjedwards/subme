@@ -7,6 +7,7 @@ type PlanInput = {
 	benefitType?: string;
 	redemptionsPerPeriod?: number;
 	active?: boolean;
+	stripePriceId?: string;
 };
 
 type UpsertPlanParams = {
@@ -57,6 +58,7 @@ export async function createPlanForStore({
 		description: plan.description || null,
 		benefit_type: plan.benefitType || null,
 		redemptions_per_period: redemptionsPerPeriod,
+		stripe_price_id: plan.stripePriceId || null,
 		active: plan.active ?? true,
 	});
 

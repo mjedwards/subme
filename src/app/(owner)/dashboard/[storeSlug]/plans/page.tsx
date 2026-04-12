@@ -20,11 +20,11 @@ export default async function SubscriptionPage({
 		.eq("slug", storeSlug)
 		.maybeSingle();
 	const { data: plans } = store
-		? await supabase
-				.from("plans")
-				.select(
-					"id, name, description, benefit_type, redemptions_per_period, active, created_at",
-				)
+				? await supabase
+						.from("plans")
+						.select(
+							"id, name, description, benefit_type, redemptions_per_period, stripe_price_id, active, created_at",
+						)
 				.eq("store_id", store.id)
 				.order("created_at", { ascending: false })
 		: { data: [] };
@@ -107,10 +107,15 @@ export default async function SubscriptionPage({
 											value={`${plan.redemptions_per_period ?? 1} / period`}
 										/>
 										<InfoTile
-											label="Public URL"
-											value={`/${storeSlug}`}
+											label="Billing"
+											value={plan.stripe_price_id ? "Stripe" : "Manual test"}
 										/>
 									</div>
+									{plan.stripe_price_id ? (
+										<p className="mt-4 text-sm text-slate-500">
+											Stripe price: <span className="font-mono">{plan.stripe_price_id}</span>
+										</p>
+									) : null}
 								</article>
 							))
 						) : (
@@ -161,6 +166,17 @@ export default async function SubscriptionPage({
 									name="benefitType"
 									type="text"
 									placeholder="e.g. Free drink"
+									className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+								/>
+							</label>
+							<label className="block">
+								<span className="text-sm font-medium text-slate-900">
+									Stripe price ID
+								</span>
+								<input
+									name="stripePriceId"
+									type="text"
+									placeholder="price_..."
 									className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-900"
 								/>
 							</label>

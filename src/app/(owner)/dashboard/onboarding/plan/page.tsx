@@ -14,6 +14,11 @@ export default async function PlanOnboardingPage({
 	const resolvedSearchParams = await searchParams;
 	const storeSlug = resolvedSearchParams?.storeSlug ?? "";
 	const steps = [
+		{
+			id: "billing",
+			label: "Connect Stripe",
+			href: "/dashboard/onboarding/billing",
+		},
 		{ id: "store", label: "Create Store", href: "/dashboard/onboarding/store" },
 		{
 			id: "plan",
@@ -98,6 +103,23 @@ export default async function PlanOnboardingPage({
 									className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
 								/>
 							</div>
+							<div className="space-y-2">
+								<label
+									className="text-sm font-medium text-slate-900"
+									htmlFor="stripePriceId"
+								>
+									Stripe price ID
+								</label>
+								<input
+									id="stripePriceId"
+									name="stripePriceId"
+									type="text"
+									placeholder="price_..."
+									className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
+								/>
+							</div>
+						</div>
+						<div className="mt-4 grid gap-4 sm:grid-cols-2">
 							<div className="space-y-2">
 								<label
 									className="text-sm font-medium text-slate-900"

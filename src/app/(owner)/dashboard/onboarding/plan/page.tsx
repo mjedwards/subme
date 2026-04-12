@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getOwnerBillingStatus } from "@/lib/stripe/connect";
+import { createRouteHandlerSupabaseClient } from "@/lib/supabase/server";
 import OnboardingHeader from "../components/OnboardingHeader";
 import OnboardingStepper from "../components/OnboardingStepper";
 import { createPlan } from "../actions/createPlan";
@@ -13,12 +15,16 @@ export default async function PlanOnboardingPage({
 }: PlanOnboardingPageProps) {
 	const resolvedSearchParams = await searchParams;
 	const storeSlug = resolvedSearchParams?.storeSlug ?? "";
+	const supabase = await createRouteHandlerSupabaseClient();
+	const { data: authData } = await supabase.auth.getUser();
+	const user = authData.user;
+	const billing = user ? await getOwnerBillingStatus(user.id) : null;
+	const paymentsEnabled = !!(
+		billing?.stripeAccountId &&
+		billing.chargesEnabled &&
+		billing.payoutsEnabled
+	);
 	const steps = [
-		{
-			id: "billing",
-			label: "Connect Stripe",
-			href: "/dashboard/onboarding/billing",
-		},
 		{ id: "store", label: "Create Store", href: "/dashboard/onboarding/store" },
 		{
 			id: "plan",
@@ -40,6 +46,15 @@ export default async function PlanOnboardingPage({
 			{resolvedSearchParams?.error ? (
 				<div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
 					{resolvedSearchParams.error}
+				</div>
+			) : null}
+			{!paymentsEnabled ? (
+				<div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+					Plans can be created now, but they will stay in draft mode until you{" "}
+					<Link href="/dashboard/settings" className="font-semibold text-amber-950">
+						enable payments
+					</Link>
+					.
 				</div>
 			) : null}
 			{!storeSlug ? (
@@ -106,23 +121,6 @@ export default async function PlanOnboardingPage({
 							<div className="space-y-2">
 								<label
 									className="text-sm font-medium text-slate-900"
-									htmlFor="stripePriceId"
-								>
-									Stripe price ID
-								</label>
-								<input
-									id="stripePriceId"
-									name="stripePriceId"
-									type="text"
-									placeholder="price_..."
-									className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
-								/>
-							</div>
-						</div>
-						<div className="mt-4 grid gap-4 sm:grid-cols-2">
-							<div className="space-y-2">
-								<label
-									className="text-sm font-medium text-slate-900"
 									htmlFor="redemptions"
 								>
 									Redemptions per period
@@ -137,6 +135,18 @@ export default async function PlanOnboardingPage({
 								/>
 							</div>
 						</div>
+						<label className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+							<input
+								type="checkbox"
+								name="active"
+								defaultChecked={paymentsEnabled}
+								disabled={!paymentsEnabled}
+								className="h-4 w-4"
+							/>
+							{paymentsEnabled
+								? "Publish this plan after creation"
+								: "Enable payments to publish this plan"}
+						</label>
 					</div>
 					<div className="flex flex-wrap items-center gap-3">
 						<button

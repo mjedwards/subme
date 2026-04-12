@@ -61,7 +61,7 @@ export async function GET(request: Request) {
 		};
 
 		if (shouldInitializeOnboarding) {
-			profilePayload.onboarding_stage = "billing";
+			profilePayload.onboarding_stage = "store";
 			profilePayload.onboarding_complete = false;
 		}
 

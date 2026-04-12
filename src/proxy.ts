@@ -69,7 +69,9 @@ export async function proxy(request: NextRequest) {
 			.maybeSingle();
 
 		const onboardingComplete = !!profile?.onboarding_complete;
-		const onboardingStage = profile?.onboarding_stage ?? "store";
+		const rawOnboardingStage = profile?.onboarding_stage ?? "store";
+		const onboardingStage =
+			rawOnboardingStage === "billing" ? "store" : rawOnboardingStage;
 
 		if (onboardingComplete && isOnboardingRoute && !isBillingOnboardingRoute) {
 			return NextResponse.redirect(new URL("/dashboard", request.url));

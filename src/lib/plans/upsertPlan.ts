@@ -7,7 +7,6 @@ type PlanInput = {
 	benefitType?: string;
 	redemptionsPerPeriod?: number;
 	active?: boolean;
-	stripePriceId?: string;
 };
 
 type UpsertPlanParams = {
@@ -51,6 +50,26 @@ export async function createPlanForStore({
 			? plan.redemptionsPerPeriod
 			: 1;
 
+	const { data: billingProfile } = await supabase
+		.from("profiles")
+		.select("stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled")
+		.eq("user_id", userId)
+		.maybeSingle<{
+			stripe_account_id: string | null;
+			stripe_charges_enabled: boolean | null;
+			stripe_payouts_enabled: boolean | null;
+		}>();
+
+	const canPublish = !!(
+		billingProfile?.stripe_account_id &&
+		billingProfile.stripe_charges_enabled &&
+		billingProfile.stripe_payouts_enabled
+	);
+
+	if (plan.active && !canPublish) {
+		return { error: "Enable payments before publishing a plan." };
+	}
+
 	const { error: planError } = await supabase.from("plans").insert({
 		id: randomUUID(),
 		store_id: store.id,
@@ -58,7 +77,6 @@ export async function createPlanForStore({
 		description: plan.description || null,
 		benefit_type: plan.benefitType || null,
 		redemptions_per_period: redemptionsPerPeriod,
-		stripe_price_id: plan.stripePriceId || null,
 		active: plan.active ?? true,
 	});
 

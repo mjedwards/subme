@@ -3,7 +3,6 @@ import OnboardingStepper from "../components/OnboardingStepper";
 import { createStore } from "../actions/createStore";
 
 const steps = [
-	{ id: "billing", label: "Connect Stripe", href: "/dashboard/onboarding/billing" },
 	{ id: "store", label: "Create Store", href: "/dashboard/onboarding/store" },
 	{ id: "plan", label: "Add Plan" },
 	{ id: "staff", label: "Invite Staff" },

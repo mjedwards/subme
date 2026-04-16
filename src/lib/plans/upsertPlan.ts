@@ -111,7 +111,7 @@ export async function createPlanForStore({
 			return { error: "Could not create the billing product for this plan." };
 		}
 	}
-
+	console.log("\n PLAN\n ", stripeProductId, "\n PLAN\n ");
 	const { error: planError } = await supabase.from("plans").insert({
 		id: planId,
 		store_id: store.id,
@@ -119,12 +119,12 @@ export async function createPlanForStore({
 		description: plan.description || null,
 		benefit_type: plan.benefitType || null,
 		redemptions_per_period: redemptionsPerPeriod,
-		stripe_product_id: stripeProductId,
 		stripe_price_id: stripePriceId,
+		active: plan.active ?? true,
+		stripe_product_id: stripeProductId,
+		billing_interval: billingInterval,
 		amount_cents: amountCents,
 		currency,
-		billing_interval: billingInterval,
-		active: plan.active ?? true,
 	});
 
 	if (planError) {

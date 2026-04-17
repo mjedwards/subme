@@ -24,7 +24,7 @@ export async function createStripeCatalogForPlan({
 	billingInterval,
 }: StripePlanParams) {
 	const stripe = getStripeServerClient();
-
+	console.log("\n STRIPE SERVER CLIENT", stripe, "\n STRIPE SERVER CLIENT");
 	const product = await stripe.products.create(
 		{
 			name,

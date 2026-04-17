@@ -24,17 +24,12 @@ export async function GET(request: NextRequest) {
 		const billing = await syncStripeBillingStatus(user.id);
 
 		if (billing.chargesEnabled && billing.payoutsEnabled) {
-			await supabase
-				.from("profiles")
-				.update({ onboarding_stage: "store", onboarding_complete: false })
-				.eq("user_id", user.id);
-
 			return NextResponse.redirect(new URL(next, request.url));
 		}
 
 		return NextResponse.redirect(
 			new URL(
-				"/dashboard/onboarding/billing?error=Stripe%20setup%20is%20not%20finished%20yet",
+				"/dashboard/settings?error=Stripe%20setup%20is%20not%20finished%20yet",
 				request.url,
 			),
 		);
@@ -42,7 +37,7 @@ export async function GET(request: NextRequest) {
 		console.error("Stripe connect return error:", error);
 		return NextResponse.redirect(
 			new URL(
-				"/dashboard/onboarding/billing?error=Unable%20to%20verify%20Stripe%20setup",
+				"/dashboard/settings?error=Unable%20to%20verify%20Stripe%20setup",
 				request.url,
 			),
 		);

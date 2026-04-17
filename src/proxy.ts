@@ -40,6 +40,7 @@ export async function proxy(request: NextRequest) {
 	const isCustomerRoute = pathname.startsWith("/account");
 	const isOnboardingRoute = pathname.startsWith("/dashboard/onboarding");
 	const isBillingOnboardingRoute = pathname === "/dashboard/onboarding/billing";
+	const isOwnerSettingsRoute = pathname === "/dashboard/settings";
 
 	if (isStaffRoute && !isStaff) {
 		const redirectTarget = isCustomer ? "/account" : "/login";
@@ -81,6 +82,7 @@ export async function proxy(request: NextRequest) {
 			const currentStage = pathname.split("/").slice(3)[0];
 			const isOnStageRoute =
 				isOnboardingRoute && currentStage === onboardingStage;
+			const canBypassOnboardingRedirect = isOwnerSettingsRoute;
 
 			let storeSlugParam = request.nextUrl.searchParams.get("storeSlug") ?? "";
 			if (!storeSlugParam && (onboardingStage === "plan" || onboardingStage === "staff")) {
@@ -103,7 +105,7 @@ export async function proxy(request: NextRequest) {
 				}
 			}
 
-			if (!isOnStageRoute) {
+			if (!isOnStageRoute && !canBypassOnboardingRedirect) {
 				const url = new URL(
 					`/dashboard/onboarding/${onboardingStage}`,
 					request.url,

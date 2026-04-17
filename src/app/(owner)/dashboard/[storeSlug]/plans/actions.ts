@@ -1,5 +1,6 @@
 "use server";
 
+import { updatePlanForStore } from "@/lib/plans/updatePlan";
 import { createPlanForStore } from "@/lib/plans/upsertPlan";
 import { createRouteHandlerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -7,7 +8,9 @@ import { redirect } from "next/navigation";
 function redirectWithError(storeSlug: string, message: string) {
 	const params = new URLSearchParams();
 	params.set("error", message);
-	redirect(`/dashboard/${encodeURIComponent(storeSlug)}/plans?${params.toString()}`);
+	redirect(
+		`/dashboard/${encodeURIComponent(storeSlug)}/plans?${params.toString()}`,
+	);
 }
 
 export async function createDashboardPlan(formData: FormData) {
@@ -53,6 +56,31 @@ export async function createDashboardPlan(formData: FormData) {
 			billingInterval,
 			active,
 		},
+	});
+
+	if (result.error) {
+		redirectWithError(storeSlug, result.error);
+	}
+
+	redirect(`/dashboard/${encodeURIComponent(storeSlug)}/plans`);
+}
+
+export async function updateDashboardPlan(formData: FormData) {
+	const storeSlug = String(formData.get("storeSlug") || "");
+	const planId = String(formData.get("planId") || "");
+	const supabase = await createRouteHandlerSupabaseClient();
+	const { data: authData } = await supabase.auth.getUser();
+	const user = authData.user;
+
+	if (!user) {
+		redirectWithError(storeSlug, "Please sign in again to continue.");
+	}
+
+	const result = await updatePlanForStore({
+		supabase,
+		storeSlug,
+		userId: user.id,
+		planId,
 	});
 
 	if (result.error) {

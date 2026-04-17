@@ -30,7 +30,10 @@ export async function POST(request: NextRequest) {
 		const user = authData.user;
 
 		if (authError || !user) {
-			return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+			return NextResponse.json(
+				{ error: "Authentication required." },
+				{ status: 401 },
+			);
 		}
 
 		const { data: store } = await supabase
@@ -102,20 +105,24 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const existingActiveSubscription = (subscriptions ?? []).find((subscription) => {
-			if (
-				!subscription.status ||
-				!ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)
-			) {
-				return false;
-			}
+		const existingActiveSubscription = (subscriptions ?? []).find(
+			(subscription) => {
+				if (
+					!subscription.status ||
+					!ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)
+				) {
+					return false;
+				}
 
-			if (!subscription.current_period_end) {
-				return true;
-			}
+				if (!subscription.current_period_end) {
+					return true;
+				}
 
-			return new Date(subscription.current_period_end).getTime() > now.getTime();
-		});
+				return (
+					new Date(subscription.current_period_end).getTime() > now.getTime()
+				);
+			},
+		);
 
 		if (existingActiveSubscription) {
 			return NextResponse.json({
@@ -138,7 +145,10 @@ export async function POST(request: NextRequest) {
 
 			if (!ownerMembership?.profile_id) {
 				return NextResponse.json(
-					{ error: "This store does not have an owner billing account configured." },
+					{
+						error:
+							"This store does not have an owner billing account configured.",
+					},
 					{ status: 409 },
 				);
 			}
@@ -173,36 +183,38 @@ export async function POST(request: NextRequest) {
 			successUrl.searchParams.set("storeSlug", store.slug);
 			successUrl.searchParams.set("planId", plan.id);
 
-			const session = await stripe.checkout.sessions.create({
-				mode: "subscription",
-				line_items: [
-					{
-						price: plan.stripe_price_id,
-						quantity: 1,
-					},
-				],
-				customer_email: user.email ?? undefined,
-				success_url: successUrl.toString(),
-				cancel_url: `${request.nextUrl.origin}/${encodeURIComponent(store.slug)}`,
-				metadata: {
-					store_id: store.id,
-					plan_id: plan.id,
-					customer_id: customerId,
-					profile_id: user.id,
-				},
-				subscription_data: {
+			const session = await stripe.checkout.sessions.create(
+				{
+					mode: "subscription",
+					line_items: [
+						{
+							price: plan.stripe_price_id,
+							quantity: 1,
+						},
+					],
+					customer_email: user.email ?? undefined,
+					success_url: successUrl.toString(),
+					cancel_url: `${request.nextUrl.origin}/${encodeURIComponent(store.slug)}`,
 					metadata: {
 						store_id: store.id,
 						plan_id: plan.id,
 						customer_id: customerId,
 						profile_id: user.id,
-						owner_profile_id: ownerMembership.profile_id,
+					},
+					subscription_data: {
+						metadata: {
+							store_id: store.id,
+							plan_id: plan.id,
+							customer_id: customerId,
+							profile_id: user.id,
+							owner_profile_id: ownerMembership.profile_id,
+						},
 					},
 				},
-			},
-			{
-				stripeAccount: ownerProfile.stripe_account_id,
-			});
+				{
+					stripeAccount: ownerProfile.stripe_account_id,
+				},
+			);
 
 			return NextResponse.json({
 				success: true,
@@ -215,16 +227,24 @@ export async function POST(request: NextRequest) {
 			now.getTime() + BILLING_PERIOD_DAYS * 24 * 60 * 60 * 1000,
 		).toISOString();
 
-		const { error: insertError } = await supabase.from("subscriptions").insert({
-			id: randomUUID(),
-			store_id: store.id,
-			customer_id: customer.id,
-			plan_id: plan.id,
-			provider: "manual",
-			status: "active",
-			current_period_start: periodStart,
-			current_period_end: periodEnd,
-		});
+		const { data, error: insertError } = await supabase
+			.from("subscriptions")
+			.insert({
+				id: randomUUID(),
+				store_id: store.id,
+				customer_id: customer.id,
+				plan_id: plan.id,
+				provider: "manual", //manual is the default this has to change
+				// stripe_customer_id: ,
+				// stripe_subscription_id:,
+				status: "active",
+				current_period_start: periodStart,
+				current_period_end: periodEnd,
+				// cancel_at_period_end: ,
+				// last_event_created: ,
+			});
+
+		console.log("\n", data, "\n");
 
 		if (insertError) {
 			return NextResponse.json(

@@ -111,7 +111,7 @@ export async function createPlanForStore({
 			return { error: "Could not create the billing product for this plan." };
 		}
 	}
-	console.log("\n PLAN\n ", stripeProductId, "\n PLAN\n ");
+
 	const { error: planError } = await supabase.from("plans").insert({
 		id: planId,
 		store_id: store.id,

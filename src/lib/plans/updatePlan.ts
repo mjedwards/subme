@@ -53,10 +53,53 @@ export async function updatePlanForStore({
 
 	const { data: plan } = await supabase
 		.from("plans")
-		.update({ active: true })
+		.select("*")
 		.eq("store_id", store.id)
-		.eq("id", planId)
-		.maybeSingle();
+		.eq("id", planId);
+
+	let stripeProductId: string | null = null;
+	let stripePriceId: string | null = null;
+
+	if (billingProfile?.stripe_account_id) {
+		try {
+			const stripeCatalog = await createStripeCatalogForPlan({
+				stripeAccountId: billingProfile.stripe_account_id,
+				storeName: store.name,
+				storeId: store.id,
+				planId,
+				name: plan[0].name,
+				description: plan[0].description,
+				amountCents: plan[0].amount_cents,
+				currency: plan[0].currency,
+				billingInterval: plan[0].billing_interval,
+			});
+
+			stripeProductId = stripeCatalog.productId;
+			stripePriceId = stripeCatalog.priceId;
+
+			console.log(stripeCatalog);
+
+			const { error } = await supabase
+				.from("plans")
+				.update({
+					active: true,
+					stripe_product_id: stripeProductId,
+					stripe_price_id: stripePriceId,
+					updated_at: new Date().toISOString(),
+				})
+				.eq("store_id", store.id)
+				.eq("id", planId)
+				.select()
+				.maybeSingle();
+
+			if (error) {
+				return { error: "plan could not be updated." };
+			}
+		} catch (error) {
+			console.error("Stripe plan creation error:", error);
+			return { error: "Could not create the billing product for this plan." };
+		}
+	}
 
 	if (!canPublish) {
 		return { error: "Enable payments before publishing a plan." };
